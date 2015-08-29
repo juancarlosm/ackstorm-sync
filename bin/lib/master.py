@@ -52,16 +52,16 @@ class SyncMaster():
 
   def __init__(self):
     # Create required folders
-    common_create_dirs()
+    create_dirs()
     self.config = self.load_config()
     
   def run(self, pid_file):
     # Check and write pid
-    if common_check_pid_file(pid_file):
+    if check_pid_file(pid_file):
       print "[ERROR] Another process is running...."
       sys.exit(1)
 
-    common_write_pid_file(pid_file)
+    write_pid_file(pid_file)
     
     # Set config as global
     global config
@@ -107,7 +107,7 @@ class SyncMaster():
         notifier.stop()
         break
   
-    common_del_pid_file(pid_file)
+    del_pid_file(pid_file)
     self.end()
   
   def check_out_of_sync(self,paths):
@@ -126,7 +126,7 @@ class SyncMaster():
         
         # Find files newer than LAST_RUN_FILE
         _cmd = 'find ' + path + ' -type f -cnewer ' + LAST_RUN_FILE
-        out,std,err = common_run(shlex.split(_cmd))
+        out,std,err = run(shlex.split(_cmd))
         
         for line in std.split('\n'):
           if not line: continue

@@ -21,7 +21,7 @@ RSYNC_ERROR_TO_CATCH = [23]
 class SyncSlave():
   def __init__(self):
     # Create required folders
-    common_create_dirs()
+    create_dirs()
     self.config = self.load_config()
     
     # Read config from master
@@ -33,11 +33,11 @@ class SyncSlave():
     
   def run(self,pid_file):
     # Check and write pid
-    if common_check_pid_file(pid_file):
+    if check_pid_file(pid_file):
       print "[ERROR] Another process is running...."
       sys.exit(1)
       
-    common_write_pid_file(pid_file)
+    write_pid_file(pid_file)
       
     # Configure logging
     loglevel = logging.INFO
@@ -75,7 +75,7 @@ class SyncSlave():
         logging.info("KILLED BY KEYBOARD INTERRUPT")
         break
   
-    common_del_pid_file(pid_file)
+    del_pid_file(pid_file)
     self.end()
       
   def loop(self):
@@ -90,7 +90,7 @@ class SyncSlave():
     ]
     
     logging.debug("Command: " + ' '.join(_cmd))
-    retval, output, error = common_run(_cmd)
+    retval, output, error = run(_cmd)
     
     # Get last updated version
     read_last_version = self.read_last_run()
@@ -151,7 +151,7 @@ class SyncSlave():
       ]
         
       logging.debug("Command: " + ' '.join(_cmd))
-      retval, output, error = common_run(_cmd)
+      retval, output, error = run(_cmd)
       
       files_processed += 1
       
@@ -270,7 +270,7 @@ class SyncSlave():
       ]
       
       logging.debug("Command: " + ' '.join(_cmd))
-      retval, output, error = common_run(_cmd)
+      retval, output, error = run(_cmd)
       
       for line in output.split('\n'):
         if not line: continue
@@ -300,7 +300,7 @@ class SyncSlave():
       for todo in todos.keys():
         if not todo: continue        
         logging.info("RUNNING ACTION: %s" %todo)
-        common_run(shlex.split(todo), detached=True)
+        run(shlex.split(todo), detached=True)
         logging.info("Done (processed in background)")
         
   def inside_sync_paths(self,filename):

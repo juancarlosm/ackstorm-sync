@@ -12,7 +12,7 @@ PID_FILE = './var/ackstorm-sync.pid'
 os.chdir(dir + '/..')
 
 # Read role config and start process
-config = common_load_config_role('./etc/role_conf.py')
+config = load_config_role('./etc/role_conf.py')
 if config.role == 'master':
   import master as role
   process = role.SyncMaster()
@@ -30,7 +30,7 @@ if len(sys.argv) < 2 or len(sys.argv) > 3:
   sys.exit(1)
     
 if 'status' in sys.argv:
-  if common_check_pid_file(PID_FILE):
+  if check_pid_file(PID_FILE):
     print "[OK] ackstorm-sync: %s is running" % config.role.upper()
     sys.exit(0)
     
@@ -38,11 +38,11 @@ if 'status' in sys.argv:
   sys.exit(1)
   
 if 'stop' in sys.argv or 'restart' in sys.argv:
-  pid = common_check_pid_file(PID_FILE)
+  pid = check_pid_file(PID_FILE)
   if pid:
     import signal
     os.kill(int(pid), signal.SIGTERM)
-    common_del_pid_file(PID_FILE)
+    del_pid_file(PID_FILE)
     print "[OK] ackstorm-sync: %s killed" % config.role.upper()
     
   else:
@@ -55,7 +55,7 @@ if 'stop' in sys.argv or 'restart' in sys.argv:
 print "Starting ackstorm-sync: %s" % config.role.upper()
 
 if process.config.daemonize:
-  if common_fork():
+  if fork():
     sys.exit(0) # Parent dies here
   
 # Run main process

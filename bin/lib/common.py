@@ -7,19 +7,19 @@ from subprocess import Popen, PIPE
 WORKDIRS = ['./var','./var/log','./data']
 LAST_RUN_FILE = './var/.last_run'
 
-def common_create_dirs():
+def create_dirs():
   # Create required folders
   for _dir in WORKDIRS:
     if not os.path.isdir(_dir):
       os.mkdir(_dir)
       
-def common_write_pid_file(filename):
+def write_pid_file(filename):
   with open(filename,'w') as file:
     file.write(str(os.getpid()))
     
   return True
     
-def common_check_pid_file(filename):
+def check_pid_file(filename):
   if os.path.exists(filename):
     f = open(filename, 'r')
     pid = f.read()
@@ -31,11 +31,11 @@ def common_check_pid_file(filename):
   return False
 
   
-def common_del_pid_file(filename):
+def del_pid_file(filename):
   if os.path.exists(filename):
     os.remove(filename)
   
-def common_run(command, detached=False):
+def run(command, detached=False):
   if detached:
     if common_fork():
       return # Main process just returns
@@ -55,7 +55,7 @@ def common_run(command, detached=False):
     
   return p.wait(), output, error
 
-def common_load_config_role(filename):
+def load_config_role(filename):
   if not os.path.isfile(filename):
     raise RuntimeError, "Configuration file does not exist: %s" % filename
 
@@ -79,7 +79,7 @@ def common_load_config_role(filename):
     
   return config
 
-def common_fork():
+def fork():
   """Detach a process from the controlling terminal and run it in the
   background as a daemon.
   @returns: True is parent, False is child
