@@ -1,0 +1,2 @@
+# Clean data files (10080: 1 week)
+find /usr/local/ackstorm/sync/data -depth -mindepth 1 -maxdepth 1 -ignore_readdir_race -type f -cmin 10080 -delete

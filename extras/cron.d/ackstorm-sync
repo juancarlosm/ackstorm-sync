@@ -1,0 +1,1 @@
+@reboot	root	/usr/local/ackstorm/sync/bin/ackstorm-sync start
