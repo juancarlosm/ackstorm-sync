@@ -68,6 +68,7 @@ class SyncSlave():
       logging.info("INITIAL SYNCRONIZATION: SKIPPED")
       
     elasped = 0
+    logging.info("Main process started")
     while True:
       try:
         self.process_pending()

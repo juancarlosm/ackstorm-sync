@@ -92,7 +92,8 @@ class SyncMaster():
     
     # Check if there are out of sync files from last run
     self.check_out_of_sync(self.config.watch_paths)
-            
+    
+    logging.info("Main process started")
     while True:
       try:
         notifier.process_events()
