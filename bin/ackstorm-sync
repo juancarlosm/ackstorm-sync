@@ -6,7 +6,9 @@ sys.path.append(dir + '/lib')
 
 from common import *
 
-PID_FILE = './var/ackstorm-sync.pid'
+NAME = 'ackstorm-sync'
+PID_FILE = './var/' + NAME + '.pid'
+VALID_ARGS = ['stop','start','restart','status']
 
 # Chdir to main folder
 os.chdir(dir + '/..')
@@ -22,40 +24,44 @@ elif config.role == 'slave':
   process = role.SyncSlave()
 
 else:
-  raise RuntimeError, "Unable to get role"
+  raise RuntimeError, 'Unable to get role'
   sys.exit(1)
-
-if len(sys.argv) < 2 or len(sys.argv) > 3:
-  print "[ERROR] Invalid arguments (stop|start|restart)"
-  sys.exit(1)
+  
+if len(sys.argv) < 2 or len(sys.argv) > 3 or \
+  not sys.argv[1] in VALID_ARGS:
+    print '[ERROR] Invalid arguments: %s' % '|'.join(VALID_ARGS)
+    sys.exit(1)
     
 if 'status' in sys.argv:
-  if check_pid_file(PID_FILE):
-    print "[OK] ackstorm-sync: %s is running" % config.role.upper()
+  if pid_file_check(PID_FILE):
+    print '[OK] ' + NAME + ': %s is running' % config.role.upper()
     sys.exit(0)
     
-  print "[ERROR] ackstorm-sync: %s is not running" % config.role.upper()
+  print '[ERROR] ' + NAME + ': %s is not running' % config.role.upper()
   sys.exit(1)
   
 if 'stop' in sys.argv or 'restart' in sys.argv:
-  pid = check_pid_file(PID_FILE)
+  pid = pid_file_check(PID_FILE)
   if pid:
     import signal
     os.kill(int(pid), signal.SIGTERM)
-    del_pid_file(PID_FILE)
-    print "[OK] ackstorm-sync: %s killed" % config.role.upper()
+    pid_file_del(PID_FILE)
+    print '[OK] ' + NAME + ': %s SIGTERM send' % config.role.upper()
     
   else:
-    print "[ERROR] ackstorm-sync: %s is not running" % config.role.upper()
+    print '[ERROR] ' + NAME + ': %s is not running' % config.role.upper()
     if 'stop' in sys.argv: sys.exit(1)
-    
-  if 'stop' in sys.argv: sys.exit(0)
+  
+  # If stop got out  
+  if 'stop' in sys.argv:
+     sys.exit(0)
   
 # start or restart
-print "Starting ackstorm-sync: %s" % config.role.upper()
+print '[OK] Starting ' + NAME + ': %s' % config.role.upper()
 
 if process.config.daemonize:
   if fork():
+    print '[OK] Main Process forked'
     sys.exit(0) # Parent dies here
   
 # Run main process

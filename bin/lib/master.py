@@ -13,6 +13,7 @@ from common import *
 
 LOG_FILE = './var/log/ackstorm-sync-master.log'
 CONFIG_FILE = './etc/master_conf.py'
+VERSION_FILE = './var/.version'
 
 DEFAULT_EVENTS = [
     "IN_CLOSE_WRITE",
@@ -57,11 +58,11 @@ class SyncMaster():
     
   def run(self, pid_file):
     # Check and write pid
-    if check_pid_file(pid_file):
+    if pid_file_check(pid_file):
       print "[ERROR] Another process is running...."
       sys.exit(1)
 
-    write_pid_file(pid_file)
+    pid_file_write(pid_file)
     
     # Set config as global
     global config
@@ -107,25 +108,23 @@ class SyncMaster():
         notifier.stop()
         break
   
-    del_pid_file(pid_file)
+    pid_file_del(pid_file)
     self.end()
   
   def check_out_of_sync(self,paths):
     last_run = None
-    if os.path.isfile(LAST_RUN_FILE):
-      with open(LAST_RUN_FILE, 'r') as file:
+    if os.path.isfile(VERSION_FILE):
+      with open(VERSION_FILE, 'r') as file:
         last_run = file.read()
   
     if last_run:
-      import shlex
-  
       newer_files=[]
       _time = str(int(time()))
       for path in paths:
         logging.info("Looking for out of sync files at: %s" % path)
         
-        # Find files newer than LAST_RUN_FILE
-        _cmd = 'find ' + path + ' -type f -cnewer ' + LAST_RUN_FILE
+        # Find files newer than VERSION_FILE
+        _cmd = 'find ' + path + ' -type f -cnewer ' + VERSION_FILE
         out,std,err = run(shlex.split(_cmd))
         
         for line in std.split('\n'):
@@ -149,10 +148,13 @@ class SyncMaster():
             file.write("%s\n" %('\n'.join(newer_files)))
             
           self.update_last_run(_time)
+          
+    else:
+      logging.debug("No last version found: Starting from 0")
   
   def update_last_run(self,_time):
     logging.debug("Update last run: " + str(_time))
-    with open(LAST_RUN_FILE, 'w') as file:
+    with open(VERSION_FILE, 'w') as file:
        file.write("%s" % _time)
        
   def catch_signals(self):
@@ -218,6 +220,6 @@ class SyncMaster():
     return config
 
   @staticmethod
-  def end(signal, frame):
+  def end(signal=None, frame=None):
     logging.info("FINISHED: Bye bye; Hasta otro ratito")
     sys.exit(1)

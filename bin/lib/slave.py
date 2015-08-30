@@ -14,7 +14,7 @@ from common import *
 
 LOG_FILE = './var/log/ackstorm-sync-slave.log'
 CONFIG_FILE = './etc/slave_conf.py'
-LAST_RUN_FILE = './var/.last_run'
+VERSION_FILE = './var/.version'
 
 RSYNC_ERROR_TO_CATCH = [23]
 
@@ -31,13 +31,16 @@ class SyncSlave():
     # exlude our paths
     self.exclude_paths = ['./var', './data']
     
+    # Get last updated version (read from file if needed)
+    self.version = self.read_version()
+    
   def run(self,pid_file):
     # Check and write pid
-    if check_pid_file(pid_file):
+    if pid_file_check(pid_file):
       print "[ERROR] Another process is running...."
       sys.exit(1)
       
-    write_pid_file(pid_file)
+    pid_file_write(pid_file)
       
     # Configure logging
     loglevel = logging.INFO
@@ -50,9 +53,16 @@ class SyncSlave():
     self.catch_signals()
     
     # Run initial sync?
-    if self.config.initial_full_sync:
+    if self.config.initial_fullsync:
       logging.info("RUNNING INITIAL SYNCRONIZATION")
-      self.full_sync()
+      
+      # Read updates and set last version (avoid to process file)
+      _last_version, _ = self.sync_updates(self.version)
+      self.update_version(_last_version, self.version)
+      self.version = _last_version
+      
+      # Now run the fullsync
+      self.fullsync()
       
     else:
       logging.info("INITIAL SYNCRONIZATION: SKIPPED")
@@ -60,62 +70,27 @@ class SyncSlave():
     elasped = 0
     while True:
       try:
-        self.loop()
+        self.process_pending()
         sleep(self.config.sleep)
         
-        # Do a full sync?
-        if self.config.full_sync_interval:
+        # Time to do a full sync?
+        if self.config.fullsync_interval:
           elasped = elasped + self.config.sleep
-          if elasped >= self.config.full_sync_interval:
+          if elasped >= self.config.fullsync_interval:
             logging.info("RUNNING FULL SYNCRONIZATION")
-            self.full_sync()
+            self.fullsync()
             elasped = 0
           
       except KeyboardInterrupt:
         logging.info("KILLED BY KEYBOARD INTERRUPT")
-        break
+        break;
   
-    del_pid_file(pid_file)
+    pid_file_del(pid_file)
     self.end()
       
-  def loop(self):
-    # Rsync updates from origin
-    logging.debug("SYNCING DATA FILES")
-    _cmd = [
-      self.config.rsync_cmd] + self.config.rsync_opts + [
-      "--password-file", 
-      self.config.rsync_secret_file,
-      self.config.rsync_user + '@' + self.config.master + '::' + self.config.rsync_updates + '/',
-      './data/'
-    ]
-    
-    logging.debug("Command: " + ' '.join(_cmd))
-    retval, output, error = run(_cmd)
-    
-    # Get last updated version
-    read_last_version = self.read_last_run()
-        
+  def process_pending(self):
     # Build pending updates files
-    pending = []
-    write_last_version = read_last_version
-    for filename in os.listdir('./data/'):
-      try:
-        file_version,file_type = filename.split('.')
-        file_version = int(file_version)
-    
-      except:
-        continue
-        
-      if file_version >= read_last_version:
-        logging.debug("File needs to be processed: %s" %filename)
-        pending.append(filename)
-        
-      else:
-        logging.debug("Already processed: %s" %filename)
-        
-      # Get last processed to write time
-      if file_version > write_last_version:
-        write_last_version = file_version
+    last_version, pending = self.sync_updates(self.version)
         
     # Sync each file
     failed = False
@@ -133,32 +108,23 @@ class SyncSlave():
     for path in [os.path.realpath('./var'), os.path.realpath('./data')]:
       if exclude.startswith('/'): exclude = exclude[1:]
       extra_rsync_opts.append("--exclude=%s" % exclude)
-    
-    # Sort list of files
-    ordered_pending = sorted(pending, key=lambda x: (int(re.sub('\D','',x)),x))
-    
-    synced_files = []
-    for file in ordered_pending:
-      logging.info("SYNCING FILES FROM %s" % file)
-      _cmd = [self.config.rsync_cmd] + self.config.rsync_opts + extra_rsync_opts + [
-        '--out-format',
-        'file:%n%L',
-        "--files-from=" + './data/' + file,
-        "--password-file",
-        self.config.rsync_secret_file,
-        self.config.rsync_user + '@' + self.config.master + '::root/',
-        '/'
-      ]
-        
-      logging.debug("Command: " + ' '.join(_cmd))
-      retval, output, error = run(_cmd)
       
+    synced_files, commands = [], []
+    for file in pending:
+      logging.info("SYNCING FILES FROM %s" % file)
+
+      # Run rsync
       files_processed += 1
+      retval, output, error = self.rsync(
+        self.config.rsync_user + '@' + self.config.master + '::root/',
+        '/',
+        extra_rsync_opts + ["--files-from=" + './data/' + file]
+      )
       
       # Check if there is a pending delete
       if retval in RSYNC_ERROR_TO_CATCH:
-        with open('./data/' + file, 'r') as file:
-          content = file.read()
+        with open('./data/' + file, 'r') as ofile:
+          content = ofile.read()
           
         for line in content.splitlines():
           if line.startswith('#DELETE:'):
@@ -179,6 +145,13 @@ class SyncSlave():
               synced_files.append(_file)
             except OSError: 
               pass
+              
+        # Process again rsync command to ensure all files exists
+        self.rsync(
+          self.config.rsync_user + '@' + self.config.master + '::root/',
+          '/',
+          extra_rsync_opts + ["--files-from=" + './data/' + file]
+        )
             
       elif retval:
         failed = True
@@ -197,55 +170,91 @@ class SyncSlave():
 #      logging.debug("r: %i - %s %s" %(retval,output,error))
 
     if files_processed:    
-      logging.info('FILES PROCESSED: %d' %files_processed)
+      logging.info('FILES PROCESSED: %d' % files_processed)
+      
+    if self.config.dry_run:
+      logging.info('NOT uptating version: %s (DRY RUN)' % last_version)
+      return
     
     if synced_files:
       self.process_actions(synced_files)
     
-    if self.config.dry_run:
-      logging.info('DRY RUN (NOT writting last updated: %s' %write_last_version)
-      sys.exit(0)
-    
     if failed: 
-      logging.info("Some problems happened, not writing last processed")
-      logging.info("Rsync output: %s - %s" %(failed_stdout,failed_stderr))
-      sys.exit(1)
+      logging.info("Some problems happened")
+      logging.info("Rsync output: %s - %s" % (failed_stdout,failed_stderr))
+      # but continue to not live in and endless loop
       
     # Go ahead if we are using the same file  
-    if files_processed == 1 and write_last_version == read_last_version:
-      logging.info("SAME FILE PROCESSED: Moving one second forward")
-      write_last_version = write_last_version + 1
+    if files_processed == 1 and last_version == self.version:
+      logging.info("SAME FILE PROCESSED: Moving version forward")
+      last_version = last_version + 1
 
     # Write last updated file
-    if write_last_version != read_last_version:
-      logging.info("UPDATING LAST RUN VERSION: %s (was %s)" %(write_last_version,read_last_version))
-      self.update_last_run(write_last_version)
+    if last_version != self.version:
+      self.update_version(last_version,self.version)
+      self.version = last_version
       
-    # Write execution file  
-    with open(self.config.end_sync_file, 'w') as file:
-      file.write("%s" % write_last_version)
+    # Write end of sync file  
+    with open(self.config.end_sync_file, 'w') as ofile:
+      ofile.write("%s" % self.version)
+      
+  def sync_updates(self, last_version):
+    logging.debug("SYNCING DATA FILES")
+    _data_dir = './data/'
     
-  def read_last_run(self):
-    last_run=1
-    if os.path.exists(LAST_RUN_FILE):
-      for line in open(LAST_RUN_FILE):
+    # Run rsync
+    retval, output, error = self.rsync(
+      self.config.rsync_user + '@' + self.config.master + '::' + self.config.rsync_updates + '/',
+      _data_dir,
+    )
+    
+    _pending = []
+    for _file in os.listdir(_data_dir):
+      try:
+        file_version,file_type = _file.split('.')
+        file_version = int(file_version)
+    
+      except:
+        continue
+        
+      if file_version >= self.version:
+        logging.debug("File needs to be processed: %s" %_file)
+        _pending.append(_file)
+        
+      else:
+        logging.debug("Already processed: %s" %_file)
+        
+      # Get last processed to write time
+      if file_version > last_version:
+        last_version = file_version
+        
+    # Sort list of files
+    ordered = sorted(_pending, key=lambda x: (int(re.sub('\D','',x)),x))
+        
+    return last_version, ordered
+    
+  def read_version(self):
+    version=1
+    if os.path.exists(VERSION_FILE):
+      for line in open(VERSION_FILE):
         line = line.strip()
         if not line: continue
       
-        last_run = int(float(line))
+        version = int(float(line))
         break;
   
-    return last_run
+    return version
   
   def catch_signals(self):
     signal.signal(signal.SIGTERM, self.end)
     signal.signal(signal.SIGINT,  self.end)
     
-  def update_last_run(self,_version):
-    with open(LAST_RUN_FILE, 'w') as file:
-      file.write("%s" % _version)
+  def update_version(self,_version, _old_version = 1):
+    logging.info("UPDATING VERSION: %s (was %s)" %(_version, _old_version))
+    with open(VERSION_FILE, 'w') as ofile:
+      ofile.write("%s" % _version)
       
-  def full_sync(self):
+  def fullsync(self):
     logging.info("Full syncronization in progress...")
     # Prepare excludes
     extra_rsync_opts = []
@@ -260,17 +269,13 @@ class SyncSlave():
     synced_files = []    
     for path in self.master.config.watch_paths:
       logging.info("SYNCING PATH: %s" % path)
-      _cmd = [self.config.rsync_cmd] + self.config.rsync_opts + extra_rsync_opts + [
-        '--out-format',
-        'file:%n%L',
-        "--password-file",
-        self.config.rsync_secret_file,
-        self.config.rsync_user + '@' + self.config.master + '::root' + path + '/',
-        path + '/'
-      ]
       
-      logging.debug("Command: " + ' '.join(_cmd))
-      retval, output, error = run(_cmd)
+      # Run rsync
+      retval, output, error = self.rsync(
+        self.config.rsync_user + '@' + self.config.master + '::root' + path + '/',
+        path + '/',
+        extra_rsync_opts
+      )
       
       for line in output.split('\n'):
         if not line: continue
@@ -299,9 +304,8 @@ class SyncSlave():
           
       for todo in todos.keys():
         if not todo: continue        
-        logging.info("RUNNING ACTION: %s" %todo)
+        logging.info("RUNNING ACTION (in background): %s" %todo)
         run(shlex.split(todo), detached=True)
-        logging.info("Done (processed in background)")
         
   def inside_sync_paths(self,filename):
     abspath = os.path.abspath(filename)
@@ -311,6 +315,20 @@ class SyncSlave():
         return True
         
     return False
+    
+  def rsync(self, rsync_from, rsync_to, rsync_ops = []):
+      _cmd = [self.config.rsync_cmd] + self.config.rsync_opts + rsync_ops + [
+        '--out-format',
+        'file:%n%L',
+        "--password-file",
+        self.config.rsync_secret_file,
+        rsync_from,
+        rsync_to
+      ]
+      
+      logging.debug("Executing command: " + ' '.join(_cmd))
+      return run(_cmd)
+    
   
   def load_config(self):
     if not os.path.isfile(CONFIG_FILE):
@@ -342,8 +360,9 @@ class SyncSlave():
       
     else:
       _file = './var/.rsync.secret'
-      with open(_file,'w') as file:
-        file.write(config.rsync_password)
+      with open(_file,'w') as ofile:
+        ofile.write(config.rsync_password)
+
       os.chmod(_file,0600)
       config.rsync_secret_file = _file
       
@@ -359,8 +378,8 @@ class SyncSlave():
     if not "dry_run" in dir(config):
       config.rsync_opts.append('--dry-run')
 
-    if not "initial_full_sync" in dir(config):
-      config.initial_full_sync = False
+    if not "initial_fullsync" in dir(config):
+      config.initial_fullsync = False
       
     if not "verbose" in dir(config):
       config.verbose = True
@@ -368,8 +387,10 @@ class SyncSlave():
     if not "daemonize" in dir(config):
       config.daemonize = True
       
-    if not "full_sync_interval" in dir(config):       
-      config.sleep = 3600*24
+    if not "fullsync_interval" in dir(config):       
+      config.fullsync_interval = 3600*4
+      
+    config.fullsync_interval = int(config.fullsync_interval)
       
     if not "sleep" in dir(config):       
       config.sleep = 5
@@ -383,6 +404,7 @@ class SyncSlave():
     return config
 
   @staticmethod
-  def end(signal, frame):
+  def end(signal=None, frame=None):
     logging.info("FINISHED: Bye bye; Hasta otro ratito")
     sys.exit(1)
+

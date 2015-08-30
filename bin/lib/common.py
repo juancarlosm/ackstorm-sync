@@ -2,6 +2,7 @@
 
 import os
 import sys
+import shlex
 from subprocess import Popen, PIPE
 
 WORKDIRS = ['./var','./var/log','./data']
@@ -13,13 +14,15 @@ def create_dirs():
     if not os.path.isdir(_dir):
       os.mkdir(_dir)
       
-def write_pid_file(filename):
+
+def pid_file_write(filename):
   with open(filename,'w') as file:
     file.write(str(os.getpid()))
     
   return True
     
-def check_pid_file(filename):
+
+def pid_file_check(filename):
   if os.path.exists(filename):
     f = open(filename, 'r')
     pid = f.read()
@@ -31,13 +34,14 @@ def check_pid_file(filename):
   return False
 
   
-def del_pid_file(filename):
+def pid_file_del(filename):
   if os.path.exists(filename):
     os.remove(filename)
   
+
 def run(command, detached=False):
   if detached:
-    if common_fork():
+    if fork():
       return # Main process just returns
       
   p = Popen(
@@ -54,6 +58,29 @@ def run(command, detached=False):
     sys.exit() # Just exit
     
   return p.wait(), output, error
+  
+def run_multi(commands, detached=False):
+  # collect output in parallel
+  def _get_lines(process):
+    return process.communicate()[0].splitlines()
+
+  from multiprocessing.dummy import Pool # thread pool
+      
+  processes = list()
+  for cmd in commands:
+    processes.append(subprocess.Popen(
+      cmd,
+      bufsize=0,
+      stdin=PIPE, stdout=PIPE, stderr=PIPE,
+      universal_newlines=True,
+      close_fds=(os.name == 'posix')
+  ))
+
+  outputs = Pool(len(processes)).map(_get_lines, processes)
+  exitcodes = [p.wait() for p in processes]
+
+  print "out: %s" % outputs
+
 
 def load_config_role(filename):
   if not os.path.isfile(filename):
@@ -78,6 +105,7 @@ def load_config_role(filename):
     raise RuntimeError, "Unable to get role"
     
   return config
+
 
 def fork():
   """Detach a process from the controlling terminal and run it in the
@@ -110,5 +138,5 @@ def fork():
   os.dup2(0, 1)
   os.dup2(0, 2)
 
-  # This is the orphan child
+  # This is the detached child
   return False
