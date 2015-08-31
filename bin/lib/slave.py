@@ -222,8 +222,8 @@ class SyncSlave():
         logging.debug("File needs to be processed: %s" %_file)
         _pending.append(_file)
         
-      else:
-        logging.debug("Already processed: %s" %_file)
+#      else:
+#        logging.debug("Already processed: %s" %_file)
         
       # Get last processed to write time
       if file_version > last_version:
@@ -271,10 +271,13 @@ class SyncSlave():
     for path in self.master.config.watch_paths:
       logging.info("SYNCING PATH: %s" % path)
       
+      if not os.path.isfile(path):
+        path = path + '/'
+      
       # Run rsync
       retval, output, error = self.rsync(
-        self.config.rsync_user + '@' + self.config.master + '::root' + path + '/',
-        path + '/',
+        self.config.rsync_user + '@' + self.config.master + '::root' + path,
+        path,
         extra_rsync_opts
       )
       
@@ -328,8 +331,12 @@ class SyncSlave():
       ]
       
       logging.debug("Executing command: " + ' '.join(_cmd))
-      return run(_cmd)
-    
+      _retval, _output, _error = run(_cmd)
+      
+      if _retval:
+        logging.debug("RETVAL: %s" % _retval)
+        logging.debug("ERROR:  %s" % _error)
+      return _retval, _output, _error
   
   def load_config(self):
     if not os.path.isfile(CONFIG_FILE):

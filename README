@@ -5,6 +5,7 @@ ACKSTORM-SYNC MASTER:
   ln -s /usr/local/ackstorm/sync/extras/cron.d/ackstorm-sync* /etc/cron.d/.
   ln -s /usr/local/ackstorm/sync/extras/rsyncd /etc/rsyncd
   ln -s /usr/local/ackstorm/sync/etc /etc/ackstorm-sync
+  ln -s /usr/local/ackstorm/sync/var/log /var/log/ackstorm-sync
   
   # Enable rsync server
   apt-get install rsync
@@ -29,6 +30,7 @@ ACKSTORM-SYNC SLAVE:
   ln -s /usr/local/ackstorm/sync/extras/monit/ackstorm-sync.conf /etc/monit/conf.d/
   ln -s /usr/local/ackstorm/sync/extras/cron.d/ackstorm-sync /etc/cron.d/
   ln -s /usr/local/ackstorm/sync/etc /etc/ackstorm-sync
+  ln -s /usr/local/ackstorm/sync/var/log /var/log/ackstorm-sync
 
   # Configure
   /usr/local/ackstorm/sync/etc/slave_conf.py
