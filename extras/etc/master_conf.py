@@ -10,7 +10,7 @@ watch_paths = [
     "/etc/fstab",
     "/etc/hosts",
     "/etc/resolv.conf",
-    "/run/resolvconf/resolv.conf",
+    "/run/resolvconf/resolv.conf"
 ]
 
 # Do not sync this files
@@ -28,5 +28,5 @@ excludes    = [
 
 inotify_excludes = [
     '^/var/log',
-    '^/tmp',
+    '^/tmp'
 ]

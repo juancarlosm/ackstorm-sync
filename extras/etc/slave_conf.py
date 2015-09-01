@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 
 dry_run        = False
-verbose        = False
+verbose        = True
 daemonize      = True
-sleep          = 30
+
+# Time to sleep between inotify syncs
+sleep          = 5
 
 # Run a full sync on startup
-initial_full_sync   = True
+initial_fullsync   = True
 
 # Run a full sync on intervals (0 to disable)
-full_sync_interval  = 3600
+# Default is 3600*4 (4 hours)
+fullsync_interval  = 3600
 
 # Master host
 master         = 'front1'

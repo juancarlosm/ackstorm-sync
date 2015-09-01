@@ -190,12 +190,6 @@ class SyncMaster():
     if not "excludes" in dir(config):
       config.excludes = []
       
-    # Add our working dirs to excludes filter (var and data)
-    config.excludes = config.excludes + [
-      os.path.realpath('./var') + '/*',
-       os.path.realpath('./data') + '/*'
-    ]
-      
     if not "actions" in dir(config):
       config.actions = []
       

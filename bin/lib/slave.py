@@ -257,23 +257,35 @@ class SyncSlave():
       
   def fullsync(self):
     logging.info("Full syncronization in progress...")
-    # Prepare excludes
-    extra_rsync_opts = []
-    for exclude in self.master.config.excludes:
-      if exclude.startswith('/'): exclude = exclude[1:]
-      extra_rsync_opts.append("--exclude=%s" % exclude)
-      
-    # Add our dirs
-    for exclude in ['var/','data/']:
-      extra_rsync_opts.append("--exclude=%s" % exclude)
 
-    synced_files = []    
+    # Prepare excludes
+    excludes = self.master.config.excludes + [
+      os.path.abspath('./var') + '/*',
+      os.path.abspath('./data') + '/*'
+    ]
+
+    synced_files = []
     for path in self.master.config.watch_paths:
-      logging.info("SYNCING PATH: %s" % path)
+      logging.info("SYNCING PATH: %s" % path)  
       
       if not os.path.isfile(path):
         path = path + '/'
-      
+        
+      # Excludes need to be relative to path
+      extra_rsync_opts = []   
+      for exclude in excludes:
+        if exclude.startswith('/'): # is dir
+          _tmp = exclude.replace(path,'')   
+          if _tmp != exclude:
+            extra_rsync_opts.append("--exclude=%s" % _tmp)
+               
+          else:
+            # exclude is not inside this sync path (ignore it)
+            pass
+
+        else:
+          extra_rsync_opts.append("--exclude=%s" % exclude)
+
       # Run rsync
       retval, output, error = self.rsync(
         self.config.rsync_user + '@' + self.config.master + '::root' + path,
