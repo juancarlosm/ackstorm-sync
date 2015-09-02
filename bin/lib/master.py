@@ -82,7 +82,7 @@ class SyncMaster():
     ev = self.Inotify()
     
     # exclude our working dirs (var and data)
-    excludes = ['^' + os.path.realpath('./var'), '^' + os.path.realpath('./data')]
+    excludes = ['^' + os.path.abspath('./var'), '^' + os.path.abspath('./data')]
     excludes = excludes + config.inotify_excludes
   
     notifier = AsyncNotifier(wm, ev, read_freq=10)
