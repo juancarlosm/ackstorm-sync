@@ -207,7 +207,8 @@ class SyncMaster():
       
     for wpath in config.watch_paths:
       if not os.path.isdir(wpath) and not os.path.isfile(wpath):
-        raise RuntimeError, "one of the watch paths does not exist: %s" % wpath
+#        raise RuntimeError, "one of the watch paths does not exist: %s" % wpath
+        pass
         
       if not os.path.isabs(wpath):
         config.watch_paths[config.watch_paths.index(wpath)] = os.path.abspath(wpath)

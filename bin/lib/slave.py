@@ -102,13 +102,13 @@ class SyncSlave():
     # Add excludes from master
     extra_rsync_opts = []
     for exclude in self.master.config.excludes:
-      if exclude.startswith('/'): exclude = exclude[1:]
+      if exclude.startswith('/'):
+        exclude = exclude[1:]
       extra_rsync_opts.append("--exclude=%s" % exclude)
     
-    # Add our paths
+    # Add our paths 2
     for path in [os.path.realpath('./var'), os.path.realpath('./data')]:
-      if exclude.startswith('/'): exclude = exclude[1:]
-      extra_rsync_opts.append("--exclude=%s" % exclude)
+      extra_rsync_opts.append("--exclude=%s" % path[1:])
       
     synced_files, commands = [], []
     for file in pending:
