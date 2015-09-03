@@ -103,7 +103,8 @@ class SyncSlave():
     extra_rsync_opts = []
     excludes = self.master.config.excludes + [
       os.path.abspath('./var') + '/**',
-       os.path.abspath('./data') + '/**'    
+      os.path.abspath('./data') + '/**',
+      os.path.abspath('./.git') + '/**'
     ]
     
     for exclude in excludes:
@@ -262,7 +263,8 @@ class SyncSlave():
     # Prepare excludes
     excludes = self.master.config.excludes + [
       os.path.abspath('./var') + '/**',
-      os.path.abspath('./data') + '/**'
+      os.path.abspath('./data') + '/**',
+      os.path.abspath('./.git') + '/**',
     ]
 
     synced_files = []

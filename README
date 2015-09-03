@@ -1,8 +1,9 @@
 ACKSTORM-SYNC MASTER:
 
   # Create links
+  ln -s /usr/local/ackstorm/sync/extras/logrotate.d/ackstorm-sync /etc/logrotate.d/
   ln -s /usr/local/ackstorm/sync/extras/monit/ackstorm-sync.conf /etc/monit/conf.d/
-  ln -s /usr/local/ackstorm/sync/extras/cron.d/ackstorm-sync* /etc/cron.d/.
+  ln -s /usr/local/ackstorm/sync/extras/cron.d/ackstorm-sync* /etc/cron.d/
   ln -s /usr/local/ackstorm/sync/extras/rsyncd /etc/rsyncd
   ln -s /usr/local/ackstorm/sync/etc /etc/ackstorm-sync
   ln -s /usr/local/ackstorm/sync/var/log /var/log/ackstorm-sync
@@ -27,6 +28,7 @@ ACKSTORM-SYNC MASTER:
 
 ACKSTORM-SYNC SLAVE:
 
+  ln -s /usr/local/ackstorm/sync/extras/logrotate.d/ackstorm-sync /etc/logrotate.d/
   ln -s /usr/local/ackstorm/sync/extras/monit/ackstorm-sync.conf /etc/monit/conf.d/
   ln -s /usr/local/ackstorm/sync/extras/cron.d/ackstorm-sync /etc/cron.d/
   ln -s /usr/local/ackstorm/sync/etc /etc/ackstorm-sync
