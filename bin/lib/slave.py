@@ -312,8 +312,6 @@ class SyncSlave():
   
   def process_actions(self,files):
     for file in files:
-      logging.debug("Processing actions")
-      
       # Process actions
       todos = {}
       for action in self.config.actions:
