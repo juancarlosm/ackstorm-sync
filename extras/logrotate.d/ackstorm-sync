@@ -1,0 +1,11 @@
+/usr/local/ackstorm/sync/var/log/*.log {
+        rotate 4
+        weekly
+        minsize 1M
+        missingok
+        create 640 root adm
+        compress
+        postrotate
+                /usr/local/ackstorm/sync/bin/ackstorm-sync restart > /dev/null
+        endscript
+}
