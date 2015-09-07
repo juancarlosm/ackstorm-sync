@@ -19,6 +19,10 @@ ACKSTORM-SYNC MASTER:
   /usr/local/ackstorm/sync/etc/role_conf.py
   /usr/local/ackstorm/sync/etc/master_conf.py
 
+  # Configure rsync secrets file
+  vi extras/rsyncd/rsyncd.secrets
+  chmod 600 extras/rsyncd/rsyncd.secrets
+
   # Restart services
   service rsync restart
   service monit restart

@@ -180,6 +180,7 @@ class SyncSlave():
       return
     
     if synced_files:
+      logging.debug("PROCESS ACTIONS")
       self.process_actions(synced_files)
     
     if failed: 
@@ -306,8 +307,12 @@ class SyncSlave():
         synced_files.append(_file)
         
     if synced_files:
+      logging.debug("FULL SYNC PROCESS ACTIONS")
       self.process_actions(synced_files)
       
+    # Write end of sync file  
+    with open(self.config.end_sync_file, 'w') as ofile:
+      ofile.write("%s" % self.version)
 #      logging.debug("r: %i - %s %s" %(retval,output,error))
   
   def process_actions(self,files):
@@ -319,10 +324,10 @@ class SyncSlave():
           logging.info("MATCH ACTION %s IN FILE: %s" % (action[action.keys()[0]],file))
           todos[action[action.keys()[0]]] = 1
           
-      for todo in todos.keys():
-        if not todo: continue        
-        logging.info("RUNNING ACTION (in background): %s" %todo)
-        run(shlex.split(todo), detached=True)
+    for todo in todos.keys():
+      if not todo: continue        
+      logging.info("RUNNING ACTION (in background): %s" %todo)
+      run(shlex.split(todo), detached=True)
         
   def inside_sync_paths(self,filename):
     abspath = os.path.abspath(filename)
@@ -391,7 +396,7 @@ class SyncSlave():
       raise RuntimeError, "No rsync_updates is set"
       
     if not "rsync_opts" in dir(config):
-      config.rsync_opts = ["-av","-r","--delete","--timeout=20","--force","--ignore-errors"]
+      config.rsync_opts = ["-av","-x","-r","--delete","--timeout=20","--force","--ignore-errors"]
       
     if not "rsync_secret_file" in dir(config):
       config.rsync_secret_file = './etc/rsync.secret'
