@@ -49,6 +49,7 @@ def run(command, detached=False):
     bufsize=0,
     stdin=PIPE, stdout=PIPE, stderr=PIPE,
     universal_newlines=True,
+    env=os.environ.copy(),
     close_fds=(os.name == 'posix')
   )
 
@@ -73,6 +74,7 @@ def run_multi(commands, detached=False):
       bufsize=0,
       stdin=PIPE, stdout=PIPE, stderr=PIPE,
       universal_newlines=True,
+      env=os.environ.copy(),
       close_fds=(os.name == 'posix')
   ))
 
