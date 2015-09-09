@@ -327,7 +327,11 @@ class SyncSlave():
     for todo in todos.keys():
       if not todo: continue        
       logging.info("RUNNING ACTION (in background): %s" %todo)
-      run(shlex.split(todo), detached=True)
+      
+      # Split processes ';'
+      commands = todo.split(';')
+      for cmd in commands:
+        run(shlex.split(cmd), detached=True)
         
   def inside_sync_paths(self,filename):
     abspath = os.path.abspath(filename)

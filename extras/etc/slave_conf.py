@@ -22,12 +22,13 @@ rsync_cmd      = 'rsync'
 rsync_user     = 'ackstorm-sync'
 rsync_password = '******'
 rsync_updates  = 'updates'
-rsync_opts     = ["-av","-r","--delete","--timeout=20","--force","--ignore-errors"]
+rsync_opts     = ["-av","-x","-r","--delete","--timeout=20","--force","--ignore-errors"]
 
 # Write this file when sync is done
 end_sync_file  = '/tmp/sync-client.done'
 
-# Actions
+# Actions (will run in detached process)
+# You can run multiple actions using ";" separator but will run simultaneously
 actions        = [
     {'/etc/fstab': 'mount -a'},
     {'/etc/nginx/*': 'service nginx restart'},
