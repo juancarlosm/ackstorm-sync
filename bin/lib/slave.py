@@ -275,6 +275,12 @@ class SyncSlave():
       if not os.path.isfile(path):
         path = path + '/'
         
+        # Create path if not exists  
+        if not os.path.isdir(path):
+          logging.info("CREATE PATH: %s" % path)
+          try: os.makedirs(path)
+          except: pass
+        
       # Excludes need to be relative to path
       extra_rsync_opts = []   
       for exclude in excludes:
