@@ -16,7 +16,8 @@ LOG_FILE = './var/log/ackstorm-sync-slave.log'
 CONFIG_FILE = './etc/slave_conf.py'
 VERSION_FILE = './var/.version'
 
-RSYNC_ERROR_TO_CATCH = [23,11]
+RSYNC_ERROR_DELETE = 23
+RSYNC_ERROR_MKDIR = 11
 
 class SyncSlave():
   def __init__(self):
@@ -124,8 +125,8 @@ class SyncSlave():
         extra_rsync_opts + ["--files-from=" + './data/' + file]
       )
       
-      # Check if there is a pending delete
-      if retval in RSYNC_ERROR_TO_CATCH:
+      # Check if there is a pending delete or mkdir
+      if retval in [RSYNC_ERROR_DELETE, RSYNC_ERROR_MKDIR]:
         with open('./data/' + file, 'r') as ofile:
           content = ofile.read()
           
@@ -310,14 +311,16 @@ class SyncSlave():
       for line in output.split('\n'):
         if not line: continue
 
-	if retval and 'rsync: mkdir' in line:
+        # check if is an error about destination directory
+	if retval = RSYNC_ERROR_MKDIR:
 	    match = re.search('rsync: mkdir "(.+)" failed: No such file or directory',line)
-	    try:
-	        mkdir_path = match.group(1)
-	        os.makedirs(mkdir_path)
-	        run_again = True
-            except:
-                pass
+	    if match:
+  	        try:
+	            mkdir_path = match.group(1)
+                    os.makedirs(mkdir_path)
+                    run_again = True
+                except:
+                    pass
 
         if not line.startswith('file:'): continue
         if line.endswith('/'): continue
