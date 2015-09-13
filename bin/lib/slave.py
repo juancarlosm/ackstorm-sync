@@ -149,7 +149,7 @@ class SyncSlave():
             except OSError: 
               pass
               
-          # Destination directory doesn't exist (create it and rerun)  
+          # Destination directory doesn't exist (create it and rerun)
           elif 'rsync: mkdir' in line:
               match = re.search('rsync: mkdir "(.+)" failed: No such file or directory',line)
               try:
@@ -267,7 +267,7 @@ class SyncSlave():
     with open(VERSION_FILE, 'w') as ofile:
       ofile.write("%s" % _version)
       
-  def fullsync(self):
+  def fullsync(self, is_recursion=False):
     logging.info("Full syncronization in progress...")
 
     # Prepare excludes
@@ -306,8 +306,19 @@ class SyncSlave():
         extra_rsync_opts
       )
       
+      run_again = False
       for line in output.split('\n'):
         if not line: continue
+
+	if retval and 'rsync: mkdir' in line:
+	    match = re.search('rsync: mkdir "(.+)" failed: No such file or directory',line)
+	    try:
+	        mkdir_path = match.group(1)
+	        os.makedirs(mkdir_path)
+	        run_again = True
+            except:
+                pass
+
         if not line.startswith('file:'): continue
         if line.endswith('/'): continue
         
@@ -323,6 +334,10 @@ class SyncSlave():
     with open(self.config.end_sync_file, 'w') as ofile:
       ofile.write("%s" % self.version)
 #      logging.debug("r: %i - %s %s" %(retval,output,error))
+
+    # If we have created destionation directories, run again
+    if not is_recursion and run_again:
+        self.fullsync(True)
   
   def process_actions(self,files):
     for file in files:
