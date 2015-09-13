@@ -126,7 +126,7 @@ class SyncSlave():
       )
       
       # Check if there is a pending delete or mkdir
-      if retval in [RSYNC_ERROR_DELETE, RSYNC_ERROR_MKDIR]:
+      if retval == RSYNC_ERROR_DELETE:
         with open('./data/' + file, 'r') as ofile:
           content = ofile.read()
           
@@ -150,17 +150,16 @@ class SyncSlave():
             except OSError: 
               pass
               
-          # Destination directory doesn't exist (create it and rerun)
-          elif 'rsync: mkdir' in line:
-              match = re.search('rsync: mkdir "(.+)" failed: No such file or directory',line)
-              if match:
-                  try:
-                      mkdir_path = match.group(1)
-                      logging.info("Destination folder: %s doesn't exists (creating it)" % mkdir_path)
-                      os.makedirs(mkdir_path)
-                  except: 
-                      pass
-              
+        # Process again rsync command to ensure all files exists
+        self.rsync(
+          self.config.rsync_user + '@' + self.config.master + '::root/',
+          '/',
+          extra_rsync_opts + ["--files-from=" + './data/' + file]
+        )
+      
+      elif retval == RSYNC_ERROR_MKDIR:
+        self.rsync_error_mkdir(retval,error)
+                
         # Process again rsync command to ensure all files exists
         self.rsync(
           self.config.rsync_user + '@' + self.config.master + '::root/',
@@ -309,22 +308,8 @@ class SyncSlave():
         extra_rsync_opts
       )
       
-      run_again = False
       for line in output.split('\n'):
         if not line: continue
-
-        # check if is an error about destination directory
-	if retval == RSYNC_ERROR_MKDIR:
-	    match = re.search('rsync: mkdir "(.+)" failed: No such file or directory',line)
-	    if match:
-  	        try:
-	            mkdir_path = match.group(1)
-	            logging.info("Destination folder: %s doesn't exists (creating it)" % mkdir_path)
-                    os.makedirs(mkdir_path)
-                    run_again = True
-                except:
-                    pass
-
         if not line.startswith('file:'): continue
         if line.endswith('/'): continue
         
@@ -336,14 +321,18 @@ class SyncSlave():
       logging.debug("FULL SYNC PROCESS ACTIONS")
       self.process_actions(synced_files)
       
+    # Check if there is an error with destination path
+    if retval == RSYNC_ERROR_MKDIR:
+      self.rsync_error_mkdir(retval,error)
+      
+      # Run again if not done before
+      if not is_recursion:
+        self.fullsync(True)
+        
     # Write end of sync file  
     with open(self.config.end_sync_file, 'w') as ofile:
       ofile.write("%s" % self.version)
 #      logging.debug("r: %i - %s %s" %(retval,output,error))
-
-    # If we have created destionation directories, run again
-    if not is_recursion and run_again:
-        self.fullsync(True)
   
   def process_actions(self,files):
     for file in files:
@@ -390,6 +379,20 @@ class SyncSlave():
         logging.debug("ERROR:  %s" % _error)
       return _retval, _output, _error
   
+  def rsync_error_mkdir(retval, stderr):
+      if retval != RSYNC_ERROR_MKDIR:
+        return
+
+      for line in stderr.split('\n'):
+        match = re.search('rsync: mkdir "(.+)" failed: No such file or directory',line)
+        if match:
+  	  try:
+	    mkdir_path = match.group(1)
+	    logging.info("Destination folder: %s doesn't exists (creating it)" % mkdir_path)
+            os.makedirs(mkdir_path)
+          except:
+            pass
+
   def load_config(self):
     if not os.path.isfile(CONFIG_FILE):
       raise RuntimeError, "Configuration file does not exist: %s" % CONFIG_FILE
