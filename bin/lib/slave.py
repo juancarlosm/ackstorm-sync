@@ -153,11 +153,13 @@ class SyncSlave():
           # Destination directory doesn't exist (create it and rerun)
           elif 'rsync: mkdir' in line:
               match = re.search('rsync: mkdir "(.+)" failed: No such file or directory',line)
-              try:
-                  path = match.group(1)
-                  os.makedirs(path)
-              except: 
-                  pass
+              if match:
+                  try:
+                      mkdir_path = match.group(1)
+                      logging.info("Destination folder: %s doesn't exists (creating it)" % mkdir_path)
+                      os.makedirs(mkdir_path)
+                  except: 
+                      pass
               
         # Process again rsync command to ensure all files exists
         self.rsync(
@@ -317,6 +319,7 @@ class SyncSlave():
 	    if match:
   	        try:
 	            mkdir_path = match.group(1)
+	            logging.info("Destination folder: %s doesn't exists (creating it)" % mkdir_path)
                     os.makedirs(mkdir_path)
                     run_again = True
                 except:
