@@ -280,6 +280,7 @@ class SyncSlave():
     ]
 
     synced_files = []
+    run_again = False
     for path in self.master.config.watch_paths:
       logging.info("SYNCING PATH: %s" % path)  
       
@@ -308,6 +309,12 @@ class SyncSlave():
         extra_rsync_opts
       )
       
+      # Check if there is an error with destination path
+      if retval == RSYNC_ERROR_MKDIR:
+        self.rsync_error_mkdir(retval,error)
+        run_again = True
+        continue
+    
       for line in output.split('\n'):
         if not line: continue
         if not line.startswith('file:'): continue
@@ -320,13 +327,9 @@ class SyncSlave():
     if synced_files:
       logging.debug("FULL SYNC PROCESS ACTIONS")
       self.process_actions(synced_files)
-      
-    # Check if there is an error with destination path
-    if retval == RSYNC_ERROR_MKDIR:
-      self.rsync_error_mkdir(retval,error)
-      
-      # Run again if not done before
-      if not is_recursion:
+    
+    # We have processed errors so run again 
+    if run_again and not is_recursion:
         self.fullsync(True)
         
     # Write end of sync file  
@@ -379,7 +382,7 @@ class SyncSlave():
         logging.debug("ERROR:  %s" % _error)
       return _retval, _output, _error
   
-  def rsync_error_mkdir(retval, stderr):
+  def rsync_error_mkdir(self, retval, stderr):
       if retval != RSYNC_ERROR_MKDIR:
         return
 
