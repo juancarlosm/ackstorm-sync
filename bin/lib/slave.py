@@ -312,7 +312,7 @@ class SyncSlave():
         if not line: continue
 
         # check if is an error about destination directory
-	if retval = RSYNC_ERROR_MKDIR:
+	if retval == RSYNC_ERROR_MKDIR:
 	    match = re.search('rsync: mkdir "(.+)" failed: No such file or directory',line)
 	    if match:
   	        try:
