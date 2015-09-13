@@ -16,7 +16,7 @@ LOG_FILE = './var/log/ackstorm-sync-slave.log'
 CONFIG_FILE = './etc/slave_conf.py'
 VERSION_FILE = './var/.version'
 
-RSYNC_ERROR_TO_CATCH = [23]
+RSYNC_ERROR_TO_CATCH = [23,11]
 
 class SyncSlave():
   def __init__(self):
@@ -149,6 +149,15 @@ class SyncSlave():
             except OSError: 
               pass
               
+          # Destination directory doesn't exist (create it and rerun)  
+          elif 'rsync: mkdir' in line:
+              match = re.search('rsync: mkdir "(.+)" failed: No such file or directory',line)
+              try:
+                  path = match.group(1)
+                  os.makedirs(path)
+              except: 
+                  pass
+              
         # Process again rsync command to ensure all files exists
         self.rsync(
           self.config.rsync_user + '@' + self.config.master + '::root/',
@@ -274,12 +283,6 @@ class SyncSlave():
       
       if not os.path.isfile(path):
         path = path + '/'
-        
-        # Create path if not exists  
-        if not os.path.isdir(path):
-          logging.info("CREATE PATH: %s" % path)
-          try: os.makedirs(path)
-          except: pass
         
       # Excludes need to be relative to path
       extra_rsync_opts = []   
