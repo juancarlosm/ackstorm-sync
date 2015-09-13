@@ -31,7 +31,7 @@ end_sync_file  = '/tmp/sync-client.done'
 # You can run multiple actions using ";" separator but will run simultaneously
 actions        = [
     {'/etc/fstab': 'mount -a'},
-    {'/etc/nginx/*': 'service nginx restart'},
+    {'/etc/nginx/*': 'service nginx reload'},
     {'/usr/local/ackstorm/sync/etc/*.py': '/usr/local/ackstorm/sync/bin/ackstorm-sync restart'},
     {'/usr/local/ackstorm/sync/bin/*.py': '/usr/local/ackstorm/sync/bin/ackstorm-sync restart'}
 ]

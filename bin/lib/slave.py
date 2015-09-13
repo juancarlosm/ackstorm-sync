@@ -168,7 +168,7 @@ class SyncSlave():
         
         _file = '/' + line[5:]
         logging.debug("Synced: %s" % _file)
-        synced_files.append(_file)
+        synced_files.append(os.path.abspath(_file))
         
 #      logging.debug("r: %i - %s %s" %(retval,output,error))
 
@@ -310,7 +310,7 @@ class SyncSlave():
         
         _file = path + '/' + line[5:]
         logging.debug("Synced: %s" % _file)
-        synced_files.append(_file)
+        synced_files.append(os.path.abspath(_file))
         
     if synced_files:
       logging.debug("FULL SYNC PROCESS ACTIONS")
