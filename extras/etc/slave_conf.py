@@ -28,9 +28,10 @@ rsync_opts     = ["-av","-x","-r","--delete","--timeout=20","--force","--ignore-
 end_sync_file  = '/tmp/sync-client.done'
 
 # Actions (will run in detached process)
-# You can run multiple actions using ";" separator but will run simultaneously
 actions        = [
     {'/etc/fstab': 'mount -a'},
+    {'/etc/monit/conf.d/*': 'service monit restart'},
+    
     {'/etc/nginx/*': 'service nginx reload'},
     {'/usr/local/ackstorm/sync/etc/*.py': '/usr/local/ackstorm/sync/bin/ackstorm-sync restart'},
     {'/usr/local/ackstorm/sync/bin/*.py': '/usr/local/ackstorm/sync/bin/ackstorm-sync restart'}

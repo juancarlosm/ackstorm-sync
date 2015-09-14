@@ -10,7 +10,8 @@ watch_paths = [
     "/etc/fstab",
     "/etc/hosts",
     "/etc/resolv.conf",
-    "/run/resolvconf/resolv.conf"
+    "/run/resolvconf/resolv.conf",
+    "/etc/monit/conf.d"
 ]
 
 # Do not sync this files (RSYNC FILTER FORMAT)
