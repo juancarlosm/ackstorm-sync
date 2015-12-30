@@ -65,6 +65,11 @@ class SyncSlave():
       # Now run the fullsync
       self.fullsync()
       
+      # Once initial sync is done, reload config and run again
+      logging.info("Reloading configuration and syncing again")
+      self.config = self.load_config()
+      self.fullsync(True)
+
     else:
       logging.info("INITIAL SYNCRONIZATION: SKIPPED")
       
