@@ -3,7 +3,7 @@
 
 
 # Clean data files (10080: 1 week)
-00 *	* * *	find /usr/local/ackstorm/sync/data -depth -mindepth 1 -maxdepth 1 -ignore_readdir_race -type f -cmin 10080 -delete
+00 *	* * *	root	find /usr/local/ackstorm/sync/data -depth -mindepth 1 -maxdepth 1 -ignore_readdir_race -type f -cmin 10080 -delete
 
 # In sync file touch
-*  *    * * *   touch /tmp/sync-client.done
+*  *    * * *   root	touch /tmp/sync-client.done
