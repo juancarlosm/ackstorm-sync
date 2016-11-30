@@ -10,14 +10,16 @@ ACKSTORM-SYNC MASTER:
   
   # Enable rsync server
   apt-get install rsync
+  # install dependencies
+  apt install python-pyinotify
   
   # Modify /etc/default/rsync
   # RSYNC_ENABLE=true 
   # RSYNC_CONFIG_FILE=/etc/rsyncd/rsyncd.conf
 
   # Configure
-  /usr/local/ackstorm/sync/etc/role_conf.py
-  /usr/local/ackstorm/sync/etc/master_conf.py
+  /usr/local/ackstorm/sync/extras/etc/role_conf.py
+  /usr/local/ackstorm/sync/extras/etc/master_conf.py
 
   # Configure rsync secrets file
   vi extras/rsyncd/rsyncd.secrets
@@ -26,24 +28,31 @@ ACKSTORM-SYNC MASTER:
   # Restart services
   service rsync restart
   service monit restart
-
   # Start sync master
   /usr/local/ackstorm/sync/bin/ackstorm-sync restart
+
+  # or use a systemd service unit
+  cp extras/systemd/ackstorm-sync.service /usr/lib/systemd/system/
+  systemctl deamon-reload
+  systemctl restart ackstorm-sync
 
 ACKSTORM-SYNC SLAVE:
 
   ln -s /usr/local/ackstorm/sync/extras/logrotate.d/ackstorm-sync /etc/logrotate.d/
   ln -s /usr/local/ackstorm/sync/extras/monit/ackstorm-sync.conf /etc/monit/conf.d/
   ln -s /usr/local/ackstorm/sync/extras/cron.d/ackstorm-sync /etc/cron.d/
-  ln -s /usr/local/ackstorm/sync/etc /etc/ackstorm-sync
+  ln -s /usr/local/ackstorm/sync/extras/etc /etc/ackstorm-sync
   ln -s /usr/local/ackstorm/sync/var/log /var/log/ackstorm-sync
 
   # Configure
-  /usr/local/ackstorm/sync/etc/slave_conf.py
+  /usr/local/ackstorm/sync/extras/etc/slave_conf.py
 
   # Restart services
   service monit restart
-
   # Start sync slave
   /usr/local/ackstorm/sync/bin/ackstorm-sync restart
 
+  # or use a systemd service unit
+  cp extras/systemd/ackstorm-sync.service /usr/lib/systemd/system/
+  systemctl deamon-reload
+  systemctl restart ackstorm-sync

@@ -12,7 +12,7 @@ from time import time, sleep
 from common import *
 
 LOG_FILE = './var/log/ackstorm-sync-master.log'
-CONFIG_FILE = './etc/master_conf.py'
+CONFIG_FILE = './extras/etc/master_conf.py'
 VERSION_FILE = './var/.version'
 
 DEFAULT_EVENTS = [
