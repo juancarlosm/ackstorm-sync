@@ -1,0 +1,11 @@
+[Unit]
+Description="Ackstorm sync master and slave daemon"
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/python /usr/local/ackstorm/sync/bin/ackstorm-sync restart
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
