@@ -13,7 +13,7 @@ from time import sleep
 from common import *
 
 LOG_FILE = './var/log/ackstorm-sync-slave.log'
-CONFIG_FILE = './etc/slave_conf.py'
+CONFIG_FILE = './extras/etc/slave_conf.py'
 VERSION_FILE = './var/.version'
 
 RSYNC_ERROR_DELETE = 23
